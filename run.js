@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 import { Builder, By, until, Key } from 'selenium-webdriver'
+import chrome from 'selenium-webdriver/chrome.js'
 import cheerio from 'cheerio'
 
 dotenv.config()
@@ -8,37 +9,33 @@ const YEAR = new Date().getFullYear()
 
 console.log(`playerName,teamName`)
 ;(async function () {
+    const opts = new chrome.Options()
+
     let driver = await new Builder().forBrowser('chrome').build()
 
     try {
-        const action = driver.actions({ async: true })
-
-        console.info('Go to https://www.espn.com/fantasy/')
+        console.error('Go to https://www.espn.com/fantasy/')
         await driver.get('https://www.espn.com/fantasy/')
 
-        console.info('Get Log in button')
+        console.error('Get Log in button')
+        await driver.wait(
+            until.elementLocated(By.xpath("//button[text()='Log In']")),
+            10000
+        )
         const loginButtons = await driver.findElements(
             By.xpath("//button[text()='Log In']")
         )
 
-        // let loginButton
-        // for (let el of loginButtons) {
-        //     if (await el.isDisplayed()) {
-        //         loginButton = el
-        //     }
-        // }
-
         // One of the login buttons is invisible and selenium doesn't like that. I think the second one is always visible...
-
         const loginButton = loginButtons[1]
 
         await loginButton.click()
 
-        console.info('Find the iframe')
+        console.error('Find the iframe')
         const frame = await driver.findElement(By.css('#disneyid-iframe'))
         await driver.switchTo().frame(frame)
 
-        console.info('Enter login')
+        console.error('Enter login')
         await driver.wait(
             until.elementLocated(By.css('.field-username-email input'))
         )
@@ -50,21 +47,19 @@ console.log(`playerName,teamName`)
             .findElement(By.css('.field-password input'))
             .sendKeys(process.env.PASSWORD, Key.ENTER)
 
-        console.info('Find skip button')
+        console.error('Find skip button')
         const skipButton = await driver.wait(
             until.elementLocated(By.xpath("//button[text()='Skip']")),
             10000
         )
 
-        console.info('Click skip')
+        console.error('Click skip')
         await skipButton.click()
 
-        console.info('Wait')
-        // await driver.switchTo().defaultContent()
-        // await driver.manage().setTimeouts({ implicit: 1000 })
+        console.error('Wait for page to reload')
         await driver.wait(until.elementLocated(By.id('fantasy-feed__header')))
 
-        console.info('Go to current year')
+        console.error('Get all years')
         await driver.get(
             `https://fantasy.espn.com/football/league/draftrecap?seasonid=${YEAR}&leagueId=849989`
         )
@@ -76,13 +71,14 @@ console.log(`playerName,teamName`)
         const yearHTML = await yearDropdown.getAttribute('innerHTML')
         const years = getYears(yearHTML)
 
+        console.error('Loop years')
         for (let year of years) {
             await getRooster(driver, year)
         }
     } catch (e) {
         console.error(e)
     } finally {
-        // await driver.quit()
+        await driver.quit()
     }
 })()
 
